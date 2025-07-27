@@ -44,6 +44,7 @@ st.subheader("💬 Ask me to analyze any stock")
 # Chat input
 user_input = st.chat_input("Type a stock name or symbol (e.g., 'Analyze stock: INFY' or 'TCS')")
 
+# Process new user input
 if user_input:
     # Add user message to chat history
     st.session_state.chat_history.append({"role": "user", "content": user_input})
@@ -52,9 +53,36 @@ if user_input:
     stock_symbol = validate_stock_symbol(user_input)
     
     if stock_symbol:
-        # Add assistant processing message
-        st.session_state.chat_history.append({"role": "assistant", "content": f"🔍 Analyzing {stock_symbol}... Please wait."})
-        st.rerun()
+        # Add processing message
+        st.session_state.chat_history.append({"role": "assistant", "content": f"🔍 Analyzing {stock_symbol}..."})
+        
+        try:
+            # Fetch stock data
+            stock_data = stock_fetcher.get_comprehensive_data(stock_symbol)
+            st.session_state.current_stock_data = stock_data
+            
+            # Generate AI analysis
+            analysis = ai_analyzer.analyze_stock(stock_data)
+            st.session_state.current_analysis = analysis
+            
+            # Update last message with success
+            st.session_state.chat_history[-1] = {
+                "role": "assistant", 
+                "content": f"✅ Analysis complete for {stock_data['company_name']} ({stock_symbol}). See detailed results below."
+            }
+            
+        except Exception as e:
+            # Update last message with error
+            st.session_state.chat_history[-1] = {
+                "role": "assistant", 
+                "content": f"❌ Error analyzing {stock_symbol}: {str(e)}"
+            }
+    else:
+        # Invalid symbol
+        st.session_state.chat_history.append({
+            "role": "assistant", 
+            "content": "❌ Please enter a valid stock symbol like 'TCS', 'INFY', or 'Reliance'."
+        })
 
 # Display chat history
 for message in st.session_state.chat_history:
@@ -64,35 +92,6 @@ for message in st.session_state.chat_history:
     else:
         with st.chat_message("assistant"):
             st.write(message["content"])
-
-# Process stock analysis if needed
-if user_input:
-    stock_symbol = validate_stock_symbol(user_input)
-    if stock_symbol:
-            try:
-                with st.spinner(f"Fetching data for {stock_symbol}..."):
-                    # Fetch stock data
-                    stock_data = stock_fetcher.get_comprehensive_data(stock_symbol)
-                    st.session_state.current_stock_data = stock_data
-                    
-                    # Generate AI analysis
-                    analysis = ai_analyzer.analyze_stock(stock_data)
-                    st.session_state.current_analysis = analysis
-                    
-                    # Update chat history with success message
-                    st.session_state.chat_history[-1] = {
-                        "role": "assistant", 
-                        "content": f"✅ Analysis complete for {stock_data['company_name']} ({stock_symbol}). See detailed results below."
-                    }
-                    st.rerun()
-                    
-            except Exception as e:
-                # Update chat history with error message
-                st.session_state.chat_history[-1] = {
-                    "role": "assistant", 
-                    "content": f"❌ Error analyzing {stock_symbol}: {str(e)}"
-                }
-                st.rerun()
 
 # Display analysis results if available
 if st.session_state.current_stock_data and st.session_state.current_analysis:

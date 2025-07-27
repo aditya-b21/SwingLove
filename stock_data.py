@@ -147,19 +147,31 @@ class StockDataFetcher:
             raise Exception(f"Error fetching data for {symbol}: {str(e)}")
     
     def _get_annual_financials(self, stock):
-        """Get annual financial data"""
+        """Get annual financial data with timeout protection"""
         try:
-            # Get financial statements
-            financials = stock.financials
-            balance_sheet = stock.balance_sheet
+            # Get financial statements with timeout handling
+            financials = None
+            balance_sheet = None
             
-            if financials.empty:
-                return pd.DataFrame()
+            try:
+                financials = stock.financials
+            except Exception as e:
+                print(f"Annual financials fetch failed: {e}")
+                return pd.DataFrame({'Message': ['Annual financial data not available']})
+            
+            if financials is None or financials.empty:
+                return pd.DataFrame({'Message': ['No annual financial data found']})
+            
+            # Try to get balance sheet (optional)
+            try:
+                balance_sheet = stock.balance_sheet
+            except Exception:
+                balance_sheet = pd.DataFrame()  # Empty if fails
             
             # Prepare annual data
             annual_data = []
             
-            for year in financials.columns:
+            for year in financials.columns[:5]:  # Limit to 5 years for speed
                 year_str = year.strftime('%Y') if hasattr(year, 'strftime') else str(year)
                 
                 annual_record = {
@@ -172,26 +184,31 @@ class StockDataFetcher:
                 }
                 annual_data.append(annual_record)
             
-            return pd.DataFrame(annual_data).head(10)  # Last 10 years
+            result_df = pd.DataFrame(annual_data)
+            return result_df if not result_df.empty else pd.DataFrame({'Message': ['Financial data processing failed']})
             
         except Exception as e:
             print(f"Error getting annual financials: {e}")
-            return pd.DataFrame()
+            return pd.DataFrame({'Message': [f'Error: {str(e)}']})
     
     def _get_quarterly_financials(self, stock):
-        """Get quarterly financial data"""
+        """Get quarterly financial data with timeout protection"""
         try:
-            # Get quarterly financials
-            quarterly_financials = stock.quarterly_financials
+            # Get quarterly financials with timeout handling
+            try:
+                quarterly_financials = stock.quarterly_financials
+            except Exception as e:
+                print(f"Quarterly financials fetch failed: {e}")
+                return pd.DataFrame({'Message': ['Quarterly financial data not available']})
             
-            if quarterly_financials.empty:
-                return pd.DataFrame()
+            if quarterly_financials is None or quarterly_financials.empty:
+                return pd.DataFrame({'Message': ['No quarterly financial data found']})
             
             # Prepare quarterly data
             quarterly_data = []
             
-            for quarter in quarterly_financials.columns:
-                quarter_str = quarter.strftime('%Y-Q%q') if hasattr(quarter, 'strftime') else str(quarter)
+            for quarter in quarterly_financials.columns[:8]:  # Limit to 8 quarters for speed
+                quarter_str = quarter.strftime('%Y-Q%m') if hasattr(quarter, 'strftime') else str(quarter)
                 
                 quarterly_record = {
                     'Quarter': quarter_str,
@@ -201,11 +218,12 @@ class StockDataFetcher:
                 }
                 quarterly_data.append(quarterly_record)
             
-            return pd.DataFrame(quarterly_data).head(10)  # Last 10 quarters
+            result_df = pd.DataFrame(quarterly_data)
+            return result_df if not result_df.empty else pd.DataFrame({'Message': ['Quarterly data processing failed']})
             
         except Exception as e:
             print(f"Error getting quarterly financials: {e}")
-            return pd.DataFrame()
+            return pd.DataFrame({'Message': [f'Error: {str(e)}']})
     
     def _calculate_eps(self, financials, period):
         """Calculate EPS from financial data"""
