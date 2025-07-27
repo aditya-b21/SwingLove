@@ -101,16 +101,47 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
     st.markdown("---")
     st.header(f"📊 Analysis: {stock_data['company_name']} ({stock_data['symbol']})")
     
-    # Stock overview
-    col1, col2, col3, col4 = st.columns(4)
+    # Comprehensive stock overview
+    st.markdown("### 📈 Key Metrics Overview")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
     with col1:
+        price_change = ""
+        if stock_data.get('year_performance'):
+            color = "green" if stock_data['year_performance'] > 0 else "red"
+            price_change = f"<span style='color:{color}'>({stock_data['year_performance']:+.2f}% YTD)</span>"
         st.metric("Current Price", f"₹{stock_data['current_price']:.2f}")
+        st.markdown(price_change, unsafe_allow_html=True)
+        
     with col2:
         st.metric("Market Cap", format_currency(stock_data['market_cap']))
+        if stock_data.get('employees'):
+            st.caption(f"Employees: {stock_data['employees']:,}")
+            
     with col3:
-        st.metric("P/E Ratio", f"{stock_data['pe_ratio']:.2f}" if stock_data['pe_ratio'] else "N/A")
+        st.metric("P/E Ratio", f"{stock_data['pe_ratio']:.2f}" if stock_data.get('pe_ratio') else "N/A")
+        if stock_data.get('pb_ratio'):
+            st.caption(f"P/B: {stock_data['pb_ratio']:.2f}")
+            
     with col4:
-        st.metric("52W High", f"₹{stock_data['fifty_two_week_high']:.2f}" if stock_data['fifty_two_week_high'] else "N/A")
+        st.metric("52W High", f"₹{stock_data['fifty_two_week_high']:.2f}" if stock_data.get('fifty_two_week_high') else "N/A")
+        if stock_data.get('fifty_two_week_low'):
+            st.caption(f"52W Low: ₹{stock_data['fifty_two_week_low']:.2f}")
+            
+    with col5:
+        st.metric("ROE (%)", f"{stock_data['roe']:.2f}" if stock_data.get('roe') else "N/A")
+        if stock_data.get('dividend_yield'):
+            st.caption(f"Div Yield: {stock_data['dividend_yield']:.2f}%")
+    
+    # Company info section
+    if stock_data.get('sector') != 'N/A' or stock_data.get('industry') != 'N/A':
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.info(f"**Sector:** {stock_data.get('sector', 'N/A')}")
+        with col2:
+            st.info(f"**Industry:** {stock_data.get('industry', 'N/A')}")
+        with col3:
+            st.info(f"**Country:** {stock_data.get('country', 'India')}")
     
     # Tabbed interface for detailed analysis
     tab1, tab2, tab3, tab4 = st.tabs(["📁 Financial Summary", "📁 Quarterly Analysis", "📁 Key Ratios", "📁 Shareholding Pattern"])
@@ -149,19 +180,52 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
     
     with tab3:
         st.subheader("Key Financial Ratios")
-        ratios_data = {
-            'Ratio': ['P/E Ratio', 'ROE (%)', 'ROCE (%)', 'Debt-to-Equity', 'Dividend Yield (%)', 'Current Ratio'],
+        
+        # Main ratios
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Valuation Ratios**")
+            valuation_data = {
+                'Ratio': ['P/E Ratio', 'P/B Ratio', 'Price-to-Sales', 'EV/Revenue', 'EV/EBITDA'],
+                'Value': [
+                    f"{stock_data['pe_ratio']:.2f}" if stock_data.get('pe_ratio') else "N/A",
+                    f"{stock_data['pb_ratio']:.2f}" if stock_data.get('pb_ratio') else "N/A",
+                    f"{stock_data['price_to_sales']:.2f}" if stock_data.get('price_to_sales') else "N/A",
+                    f"{stock_data['ev_to_revenue']:.2f}" if stock_data.get('ev_to_revenue') else "N/A",
+                    f"{stock_data['ev_to_ebitda']:.2f}" if stock_data.get('ev_to_ebitda') else "N/A"
+                ]
+            }
+            st.dataframe(pd.DataFrame(valuation_data), use_container_width=True, hide_index=True)
+        
+        with col2:
+            st.markdown("**Financial Health Ratios**")
+            health_data = {
+                'Ratio': ['ROE (%)', 'ROCE (%)', 'Current Ratio', 'Quick Ratio', 'Debt-to-Equity'],
+                'Value': [
+                    f"{stock_data['roe']:.2f}" if stock_data.get('roe') else "N/A",
+                    f"{stock_data['roce']:.2f}" if stock_data.get('roce') else "N/A",
+                    f"{stock_data['current_ratio']:.2f}" if stock_data.get('current_ratio') else "N/A",
+                    f"{stock_data['quick_ratio']:.2f}" if stock_data.get('quick_ratio') else "N/A",
+                    f"{stock_data['debt_to_equity']:.2f}" if stock_data.get('debt_to_equity') else "N/A"
+                ]
+            }
+            st.dataframe(pd.DataFrame(health_data), use_container_width=True, hide_index=True)
+        
+        # Performance metrics
+        st.markdown("**Performance & Growth Metrics**")
+        performance_data = {
+            'Metric': ['Profit Margin (%)', 'Operating Margin (%)', 'Revenue Growth (%)', 'Earnings Growth (%)', 'Dividend Yield (%)', '1Y Performance (%)'],
             'Value': [
-                f"{stock_data['pe_ratio']:.2f}" if stock_data['pe_ratio'] else "N/A",
-                f"{stock_data['roe']:.2f}" if stock_data['roe'] else "N/A",
-                f"{stock_data['roce']:.2f}" if stock_data['roce'] else "N/A",
-                f"{stock_data['debt_to_equity']:.2f}" if stock_data['debt_to_equity'] else "N/A",
-                f"{stock_data['dividend_yield']:.2f}" if stock_data['dividend_yield'] else "N/A",
-                f"{stock_data['current_ratio']:.2f}" if stock_data['current_ratio'] else "N/A"
+                f"{stock_data['profit_margins']:.2f}" if stock_data.get('profit_margins') else "N/A",
+                f"{stock_data['operating_margins']:.2f}" if stock_data.get('operating_margins') else "N/A",
+                f"{stock_data['revenue_growth']:.2f}" if stock_data.get('revenue_growth') else "N/A",
+                f"{stock_data['earnings_growth']:.2f}" if stock_data.get('earnings_growth') else "N/A",
+                f"{stock_data['dividend_yield']:.2f}" if stock_data.get('dividend_yield') else "N/A",
+                f"{stock_data['year_performance']:.2f}" if stock_data.get('year_performance') else "N/A"
             ]
         }
-        ratios_df = pd.DataFrame(ratios_data)
-        st.dataframe(ratios_df, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(performance_data), use_container_width=True, hide_index=True)
     
     with tab4:
         st.subheader("Shareholding Pattern (Latest)")

@@ -66,66 +66,85 @@ class StockDataFetcher:
         return f"{symbol}.NS"
     
     def get_comprehensive_data(self, symbol):
-        """Fetch comprehensive stock data with optimized performance"""
+        """Fetch comprehensive and accurate stock data"""
         try:
             # Convert to proper Indian symbol format
             formatted_symbol = self.get_indian_symbol(symbol)
-            print(f"Fetching data for: {formatted_symbol}")
+            print(f"Fetching comprehensive data for: {formatted_symbol}")
             
-            # Get stock info using yfinance with timeout
+            # Get stock info using yfinance
             stock = yf.Ticker(formatted_symbol)
             
-            # Quick validation first - just get basic info
+            # Comprehensive data retrieval with fallback
             try:
                 info = stock.info
-                if not info or 'currentPrice' not in info and 'regularMarketPrice' not in info:
+                if not info or ('currentPrice' not in info and 'regularMarketPrice' not in info and 'previousClose' not in info):
                     # Try with .BO if .NS failed
                     if formatted_symbol.endswith('.NS'):
                         formatted_symbol = formatted_symbol.replace('.NS', '.BO')
                         stock = yf.Ticker(formatted_symbol)
                         info = stock.info
                     
-                    if not info or ('currentPrice' not in info and 'regularMarketPrice' not in info):
+                    if not info or ('currentPrice' not in info and 'regularMarketPrice' not in info and 'previousClose' not in info):
                         raise ValueError(f"Stock symbol '{symbol}' not found or no price data available.")
                         
             except Exception as e:
                 raise ValueError(f"Unable to fetch data for '{symbol}'. Please verify the stock symbol.")
             
-            print("Basic stock info retrieved successfully")
+            print("✓ Basic stock info retrieved successfully")
             
-            # Get minimal historical data for faster loading (1 year instead of 10)
+            # Get more comprehensive historical data (3 years for better analysis)
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=365)  # 1 year only
+            start_date = end_date - timedelta(days=365 * 3)  # 3 years for comprehensive analysis
             
             hist_data = None
             try:
-                hist_data = stock.history(start=start_date, end=end_date, timeout=10)
+                hist_data = stock.history(start=start_date, end=end_date, timeout=15)
+                if hist_data.empty:
+                    # Fallback to 1 year if 3 years fails
+                    start_date = end_date - timedelta(days=365)
+                    hist_data = stock.history(start=start_date, end=end_date, timeout=10)
             except Exception as e:
                 print(f"Historical data fetch failed: {e}")
                 hist_data = pd.DataFrame()  # Empty dataframe if fails
             
-            print("Historical data retrieved")
+            print("✓ Historical data retrieved")
             
-            # Get financial data (with timeout handling)
+            # Get comprehensive financial data
             annual_data = self._get_annual_financials(stock)
             quarterly_data = self._get_quarterly_financials(stock)
             
-            print("Financial data processed")
+            # Get additional financial metrics
+            additional_metrics = self._get_additional_metrics(stock, info)
             
-            # Compile comprehensive data
+            print("✓ Financial data processed")
+            
+            # Compile comprehensive data with enhanced accuracy
+            current_price = (info.get('currentPrice') or 
+                           info.get('regularMarketPrice') or 
+                           info.get('previousClose') or 0)
+            
             stock_data = {
                 'symbol': formatted_symbol,
                 'company_name': info.get('longName', info.get('shortName', symbol)),
-                'current_price': info.get('currentPrice', info.get('regularMarketPrice', 0)),
+                'current_price': current_price,
                 'market_cap': info.get('marketCap', 0),
-                'pe_ratio': info.get('trailingPE', None),
+                'pe_ratio': info.get('trailingPE', info.get('forwardPE', None)),
+                'pb_ratio': info.get('priceToBook', None),
                 'roe': self._calculate_roe(info),
                 'roce': self._calculate_roce(info),
                 'debt_to_equity': info.get('debtToEquity', None),
                 'dividend_yield': info.get('dividendYield', 0) * 100 if info.get('dividendYield') else None,
                 'current_ratio': info.get('currentRatio', None),
+                'quick_ratio': info.get('quickRatio', None),
                 'fifty_two_week_high': info.get('fiftyTwoWeekHigh', None),
                 'fifty_two_week_low': info.get('fiftyTwoWeekLow', None),
+                'book_value': info.get('bookValue', None),
+                'price_to_sales': info.get('priceToSalesTrailing12Months', None),
+                'profit_margins': info.get('profitMargins', None) * 100 if info.get('profitMargins') else None,
+                'operating_margins': info.get('operatingMargins', None) * 100 if info.get('operatingMargins') else None,
+                'revenue_growth': info.get('revenueGrowth', None) * 100 if info.get('revenueGrowth') else None,
+                'earnings_growth': info.get('earningsGrowth', None) * 100 if info.get('earningsGrowth') else None,
                 'promoter_holding': self._get_promoter_holding(info),
                 'fii_holding': self._get_fii_holding(info),
                 'dii_holding': self._get_dii_holding(info),
@@ -136,8 +155,15 @@ class StockDataFetcher:
                 'historical_data': hist_data,
                 'sector': info.get('sector', 'N/A'),
                 'industry': info.get('industry', 'N/A'),
+                'country': info.get('country', 'India'),
+                'employees': info.get('fullTimeEmployees', None),
+                'website': info.get('website', None),
+                'business_summary': info.get('longBusinessSummary', 'N/A'),
                 'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
+            
+            # Add additional calculated metrics
+            stock_data.update(additional_metrics)
             
             print(f"Data compilation complete for {stock_data['company_name']}")
             return stock_data
@@ -292,3 +318,38 @@ class StockDataFetcher:
             return max(0, retail_holding)
         except Exception:
             return None
+    
+    def _get_additional_metrics(self, stock, info):
+        """Get additional financial metrics and calculations"""
+        try:
+            additional_data = {}
+            
+            # Calculate price performance metrics
+            hist_data = stock.history(period="1y")
+            if not hist_data.empty:
+                year_start_price = hist_data['Close'].iloc[0]
+                current_price = hist_data['Close'].iloc[-1]
+                additional_data['year_performance'] = ((current_price - year_start_price) / year_start_price) * 100
+                
+                # Calculate volatility (standard deviation of returns)
+                returns = hist_data['Close'].pct_change().dropna()
+                additional_data['volatility'] = returns.std() * 100
+                
+                # Calculate average volume
+                additional_data['avg_volume'] = hist_data['Volume'].mean()
+            
+            # Enhanced valuation metrics
+            additional_data['enterprise_value'] = info.get('enterpriseValue', None)
+            additional_data['ev_to_revenue'] = info.get('enterpriseToRevenue', None)
+            additional_data['ev_to_ebitda'] = info.get('enterpriseToEbitda', None)
+            
+            # Financial strength indicators
+            additional_data['total_cash'] = info.get('totalCash', None)
+            additional_data['total_debt'] = info.get('totalDebt', None)
+            additional_data['free_cash_flow'] = info.get('freeCashflow', None)
+            
+            return additional_data
+            
+        except Exception as e:
+            print(f"Error getting additional metrics: {e}")
+            return {}

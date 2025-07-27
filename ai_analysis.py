@@ -45,44 +45,72 @@ class AIAnalyzer:
             return self._generate_basic_analysis(stock_data)
     
     def _create_analysis_prompt(self, stock_data: Dict[str, Any]) -> str:
-        """Create analysis prompt for AI"""
-        prompt = f"""
-        Analyze the following stock data for {stock_data['company_name']} ({stock_data['symbol']}) and provide insights:
+        """Create analysis prompt for AI with safe formatting"""
+        try:
+            # Safe formatting function
+            def safe_format(value, format_type=''):
+                if value is None:
+                    return 'N/A'
+                try:
+                    if format_type == 'price':
+                        return f"₹{float(value):.2f}"
+                    elif format_type == 'percent':
+                        return f"{float(value):.2f}%"
+                    elif format_type == 'currency':
+                        return f"₹{int(value):,}"
+                    elif format_type == 'ratio':
+                        return f"{float(value):.2f}"
+                    else:
+                        return str(value)
+                except (ValueError, TypeError):
+                    return 'N/A'
+            
+            prompt = f"""
+            Analyze the following stock data for {stock_data.get('company_name', 'Unknown')} ({stock_data.get('symbol', 'N/A')}) and provide insights:
 
-        CURRENT METRICS:
-        - Current Price: ₹{stock_data['current_price']:.2f}
-        - Market Cap: ₹{stock_data['market_cap']:,} if available
-        - P/E Ratio: {stock_data['pe_ratio'] if stock_data['pe_ratio'] else 'N/A'}
-        - ROE: {stock_data['roe']:.2f}% if stock_data['roe'] else 'N/A'
-        - ROCE: {stock_data['roce']:.2f}% if stock_data['roce'] else 'N/A'
-        - Debt-to-Equity: {stock_data['debt_to_equity'] if stock_data['debt_to_equity'] else 'N/A'}
-        - Dividend Yield: {stock_data['dividend_yield']:.2f}% if stock_data['dividend_yield'] else 'N/A'
-        - Current Ratio: {stock_data['current_ratio'] if stock_data['current_ratio'] else 'N/A'}
-        - Sector: {stock_data['sector']}
-        - Industry: {stock_data['industry']}
+            CURRENT METRICS:
+            - Current Price: {safe_format(stock_data.get('current_price'), 'price')}
+            - Market Cap: {safe_format(stock_data.get('market_cap'), 'currency')}
+            - P/E Ratio: {safe_format(stock_data.get('pe_ratio'), 'ratio')}
+            - ROE: {safe_format(stock_data.get('roe'), 'percent')}
+            - ROCE: {safe_format(stock_data.get('roce'), 'percent')}
+            - Debt-to-Equity: {safe_format(stock_data.get('debt_to_equity'), 'ratio')}
+            - Dividend Yield: {safe_format(stock_data.get('dividend_yield'), 'percent')}
+            - Current Ratio: {safe_format(stock_data.get('current_ratio'), 'ratio')}
+            - Sector: {stock_data.get('sector', 'N/A')}
+            - Industry: {stock_data.get('industry', 'N/A')}
 
-        SHAREHOLDING PATTERN:
-        - Promoter Holding: {stock_data['promoter_holding']:.2f}% if stock_data['promoter_holding'] else 'N/A'
-        - FII Holding: {stock_data['fii_holding']:.2f}% if stock_data['fii_holding'] else 'N/A'
-        - Retail Holding: {stock_data['retail_holding']:.2f}% if stock_data['retail_holding'] else 'N/A'
+            FINANCIAL PERFORMANCE:
+            - 52W High: {safe_format(stock_data.get('fifty_two_week_high'), 'price')}
+            - 52W Low: {safe_format(stock_data.get('fifty_two_week_low'), 'price')}
 
-        Please provide:
-        1. 3-5 key insights as bullet points
-        2. A comprehensive investment implication summary (2-3 sentences)
+            SHAREHOLDING PATTERN:
+            - Promoter Holding: {safe_format(stock_data.get('promoter_holding'), 'percent')}
+            - FII Holding: {safe_format(stock_data.get('fii_holding'), 'percent')}
+            - DII Holding: {safe_format(stock_data.get('dii_holding'), 'percent')}
+            - Retail Holding: {safe_format(stock_data.get('retail_holding'), 'percent')}
 
-        Format your response as:
-        INSIGHTS:
-        • [Insight 1]
-        • [Insight 2]
-        • [Insight 3]
-        • [Insight 4]
-        • [Insight 5]
+            Please provide:
+            1. 3-5 key insights as bullet points
+            2. A comprehensive investment implication summary (2-3 sentences)
 
-        INVESTMENT_SUMMARY:
-        [Your investment analysis and recommendation]
-        """
-        
-        return prompt
+            Format your response as:
+            INSIGHTS:
+            • [Insight 1]
+            • [Insight 2]
+            • [Insight 3]
+            • [Insight 4]
+            • [Insight 5]
+
+            INVESTMENT_SUMMARY:
+            [Your investment analysis and recommendation]
+            """
+            
+            return prompt
+            
+        except Exception as e:
+            print(f"Error creating analysis prompt: {e}")
+            return f"Analyze stock {stock_data.get('company_name', 'Unknown')} and provide investment insights."
     
     def _call_together_ai(self, prompt: str) -> str:
         """Call Together AI API"""
