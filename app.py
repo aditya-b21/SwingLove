@@ -66,31 +66,33 @@ for message in st.session_state.chat_history:
             st.write(message["content"])
 
 # Process stock analysis if needed
-if user_input and stock_symbol:
-    try:
-        with st.spinner(f"Fetching data for {stock_symbol}..."):
-            # Fetch stock data
-            stock_data = stock_fetcher.get_comprehensive_data(stock_symbol)
-            st.session_state.current_stock_data = stock_data
-            
-            # Generate AI analysis
-            analysis = ai_analyzer.analyze_stock(stock_data)
-            st.session_state.current_analysis = analysis
-            
-            # Update chat history with success message
-            st.session_state.chat_history[-1] = {
-                "role": "assistant", 
-                "content": f"✅ Analysis complete for {stock_data['company_name']} ({stock_symbol}). See detailed results below."
-            }
-            st.rerun()
-            
-    except Exception as e:
-        # Update chat history with error message
-        st.session_state.chat_history[-1] = {
-            "role": "assistant", 
-            "content": f"❌ Error analyzing {stock_symbol}: {str(e)}"
-        }
-        st.rerun()
+if user_input:
+    stock_symbol = validate_stock_symbol(user_input)
+    if stock_symbol:
+            try:
+                with st.spinner(f"Fetching data for {stock_symbol}..."):
+                    # Fetch stock data
+                    stock_data = stock_fetcher.get_comprehensive_data(stock_symbol)
+                    st.session_state.current_stock_data = stock_data
+                    
+                    # Generate AI analysis
+                    analysis = ai_analyzer.analyze_stock(stock_data)
+                    st.session_state.current_analysis = analysis
+                    
+                    # Update chat history with success message
+                    st.session_state.chat_history[-1] = {
+                        "role": "assistant", 
+                        "content": f"✅ Analysis complete for {stock_data['company_name']} ({stock_symbol}). See detailed results below."
+                    }
+                    st.rerun()
+                    
+            except Exception as e:
+                # Update chat history with error message
+                st.session_state.chat_history[-1] = {
+                    "role": "assistant", 
+                    "content": f"❌ Error analyzing {stock_symbol}: {str(e)}"
+                }
+                st.rerun()
 
 # Display analysis results if available
 if st.session_state.current_stock_data and st.session_state.current_analysis:

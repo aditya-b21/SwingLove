@@ -66,45 +66,51 @@ class StockDataFetcher:
         return f"{symbol}.NS"
     
     def get_comprehensive_data(self, symbol):
-        """Fetch comprehensive stock data"""
+        """Fetch comprehensive stock data with optimized performance"""
         try:
             # Convert to proper Indian symbol format
             formatted_symbol = self.get_indian_symbol(symbol)
+            print(f"Fetching data for: {formatted_symbol}")
             
-            # Get stock info using yfinance
+            # Get stock info using yfinance with timeout
             stock = yf.Ticker(formatted_symbol)
-            info = stock.info
             
-            # Validate if stock exists
-            if not info or 'symbol' not in info:
-                # Try with .BO if .NS failed
-                if formatted_symbol.endswith('.NS'):
-                    formatted_symbol = formatted_symbol.replace('.NS', '.BO')
-                    stock = yf.Ticker(formatted_symbol)
-                    info = stock.info
-                
-                if not info or 'symbol' not in info:
-                    raise ValueError(f"Stock symbol '{symbol}' not found. Please check the symbol and try again.")
+            # Quick validation first - just get basic info
+            try:
+                info = stock.info
+                if not info or 'currentPrice' not in info and 'regularMarketPrice' not in info:
+                    # Try with .BO if .NS failed
+                    if formatted_symbol.endswith('.NS'):
+                        formatted_symbol = formatted_symbol.replace('.NS', '.BO')
+                        stock = yf.Ticker(formatted_symbol)
+                        info = stock.info
+                    
+                    if not info or ('currentPrice' not in info and 'regularMarketPrice' not in info):
+                        raise ValueError(f"Stock symbol '{symbol}' not found or no price data available.")
+                        
+            except Exception as e:
+                raise ValueError(f"Unable to fetch data for '{symbol}'. Please verify the stock symbol.")
             
-            # Get historical data
+            print("Basic stock info retrieved successfully")
+            
+            # Get minimal historical data for faster loading (1 year instead of 10)
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=365 * 10)  # 10 years
+            start_date = end_date - timedelta(days=365)  # 1 year only
             
-            # Fetch historical data with retry logic
             hist_data = None
-            for attempt in range(3):
-                try:
-                    hist_data = stock.history(start=start_date, end=end_date)
-                    if not hist_data.empty:
-                        break
-                except Exception as e:
-                    if attempt == 2:
-                        print(f"Failed to fetch historical data after 3 attempts: {e}")
-                    time.sleep(1)
+            try:
+                hist_data = stock.history(start=start_date, end=end_date, timeout=10)
+            except Exception as e:
+                print(f"Historical data fetch failed: {e}")
+                hist_data = pd.DataFrame()  # Empty dataframe if fails
             
-            # Get financial data
+            print("Historical data retrieved")
+            
+            # Get financial data (with timeout handling)
             annual_data = self._get_annual_financials(stock)
             quarterly_data = self._get_quarterly_financials(stock)
+            
+            print("Financial data processed")
             
             # Compile comprehensive data
             stock_data = {
@@ -133,9 +139,11 @@ class StockDataFetcher:
                 'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
+            print(f"Data compilation complete for {stock_data['company_name']}")
             return stock_data
             
         except Exception as e:
+            print(f"Error in get_comprehensive_data: {str(e)}")
             raise Exception(f"Error fetching data for {symbol}: {str(e)}")
     
     def _get_annual_financials(self, stock):
