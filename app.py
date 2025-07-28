@@ -320,7 +320,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
             - **Market Cap:** {format_currency(stock_data['market_cap'])}
             - **Current Price:** ₹{stock_data['current_price']:,.2f}
             - **52W High/Low:** ₹{stock_data.get('fifty_two_week_high', 0):,.0f} / ₹{stock_data.get('fifty_two_week_low', 0):,.0f}
-            - **Book Value:** ₹{stock_data.get('book_value', 0):.2f} if stock_data.get('book_value') else 'N/A'
+            - **Book Value:** {f"₹{stock_data.get('book_value', 0):.2f}" if stock_data.get('book_value') else 'N/A'}
             """)
         
         with col3:
@@ -331,10 +331,10 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
             
             st.markdown(f"""
             **Key Ratios:**
-            - **P/E Ratio:** {pe_ratio:.2f if pe_ratio else 'N/A'}
-            - **P/B Ratio:** {pb_ratio:.2f if pb_ratio else 'N/A'}
-            - **ROE:** {roe:.2f if roe else 'N/A'}%
-            - **Dividend Yield:** {dividend_yield:.2f if dividend_yield else 'N/A'}%
+            - **P/E Ratio:** {f"{pe_ratio:.2f}" if pe_ratio else 'N/A'}
+            - **P/B Ratio:** {f"{pb_ratio:.2f}" if pb_ratio else 'N/A'}
+            - **ROE:** {f"{roe:.2f}" if roe else 'N/A'}%
+            - **Dividend Yield:** {f"{dividend_yield:.2f}" if dividend_yield else 'N/A'}%
             """)
         
         # Quick Financial Analysis section similar to your second image
