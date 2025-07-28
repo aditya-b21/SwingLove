@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import time
 from stock_data import StockDataFetcher
-from ai_analysis import AIAnalyzer
+from gemini_analysis import GeminiStockAnalyzer
 from utils import format_currency, format_percentage, validate_stock_symbol
 
 # Page configuration
@@ -28,11 +28,11 @@ def get_stock_fetcher():
     return StockDataFetcher()
 
 @st.cache_resource
-def get_ai_analyzer():
-    return AIAnalyzer()
+def get_gemini_analyzer():
+    return GeminiStockAnalyzer()
 
 stock_fetcher = get_stock_fetcher()
-ai_analyzer = get_ai_analyzer()
+gemini_analyzer = get_gemini_analyzer()
 
 # Custom CSS for modern financial UI
 st.markdown("""
@@ -169,7 +169,7 @@ if user_input:
             st.session_state.current_stock_data = stock_data
             
             # Generate AI analysis
-            analysis = ai_analyzer.analyze_stock(stock_data)
+            analysis = gemini_analyzer.generate_stock_insights(stock_data)
             st.session_state.current_analysis = analysis
             
             # Update last message with success
@@ -709,11 +709,27 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
             st.info("No specific insights available for this stock.")
     
     with col2:
-        st.subheader("📈 Investment Implication")
-        if analysis['investment_summary']:
-            st.write(analysis['investment_summary'])
+        st.subheader("📈 Investment Recommendation")
+        if analysis.get('recommendation'):
+            recommendation = analysis['recommendation']
+            if recommendation == "Buy":
+                st.success(f"🟢 **{recommendation}** - Positive outlook based on analysis")
+            elif recommendation == "Sell":
+                st.error(f"🔴 **{recommendation}** - Caution advised based on analysis")
+            else:
+                st.info(f"🟡 **{recommendation}** - Neutral stance recommended")
+        
+        st.subheader("⚠️ Risk Assessment")
+        if analysis.get('risks'):
+            for i, risk in enumerate(analysis['risks'], 1):
+                st.write(f"**{i}.** {risk}")
         else:
-            st.info("Investment analysis not available for this stock.")
+            st.info("Risk assessment not available.")
+            
+        # Display full AI analysis if available
+        if analysis.get('analysis_text'):
+            with st.expander("📄 Full AI Analysis"):
+                st.write(analysis['analysis_text'])
     
     # Clear analysis button
     if st.button("🔄 Clear Analysis", type="secondary"):
