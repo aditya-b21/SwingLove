@@ -263,15 +263,16 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
         
         with col1:
             profit_margin = stock_data.get('profit_margins')
-            if profit_margin:
-                color = "🟢" if profit_margin > 15 else "🟡" if profit_margin > 5 else "🔴"
-                st.metric("Profit Margin", f"{profit_margin:.1f}%", delta=f"{color}")
+            if profit_margin is not None:
+                profit_margin_pct = profit_margin * 100 if profit_margin < 1 else profit_margin
+                color = "🟢" if profit_margin_pct > 15 else "🟡" if profit_margin_pct > 5 else "🔴"
+                st.metric("Profit Margin", f"{profit_margin_pct:.1f}%", delta=f"{color}")
             else:
                 st.metric("Profit Margin", "N/A")
                 
         with col2:
             revenue_growth = stock_data.get('revenue_growth')
-            if revenue_growth:
+            if revenue_growth is not None:
                 color = "🟢" if revenue_growth > 10 else "🟡" if revenue_growth > 0 else "🔴"
                 st.metric("Revenue Growth", f"{revenue_growth:.1f}%", delta=f"{color}")
             else:
@@ -279,7 +280,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
                 
         with col3:
             debt_eq = stock_data.get('debt_to_equity')
-            if debt_eq:
+            if debt_eq is not None:
                 color = "🟢" if debt_eq < 0.5 else "🟡" if debt_eq < 1 else "🔴"
                 st.metric("Debt/Equity", f"{debt_eq:.2f}", delta=f"{color}")
             else:
@@ -287,7 +288,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
                 
         with col4:
             current_ratio = stock_data.get('current_ratio')
-            if current_ratio:
+            if current_ratio is not None:
                 color = "🟢" if current_ratio > 1.5 else "🟡" if current_ratio > 1 else "🔴"
                 st.metric("Current Ratio", f"{current_ratio:.2f}", delta=f"{color}")
             else:
@@ -382,28 +383,28 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
                 st.metric("ROE (%)", f"{roe_val:.4f}" if roe_val else "N/A")
                 
                 pat_margin = stock_data.get('profit_margins', 7.0156) * 100 if stock_data.get('profit_margins') else 7.0156
-                st.metric("PAT Margin (%)", f"{pat_margin:.4f}")
+                st.metric("PAT Margin (%)", f"{pat_margin:.4f}" if pat_margin is not None else "N/A")
                 
             with metric_col2:
                 roce_val = stock_data.get('roce', 21.5676)
                 st.metric("ROCE (%)", f"{roce_val:.4f}" if roce_val else "21.5676")
                 
                 dividend_per_share = stock_data.get('dividend_per_share', 5.66)
-                st.metric("Dividend per Share", f"{dividend_per_share:.2f}")
+                st.metric("Dividend per Share", f"{dividend_per_share:.2f}" if dividend_per_share else "N/A")
                 
             with metric_col3:
                 eps_val = stock_data.get('eps', 16.6139)
                 st.metric("EPS (₹)", f"{eps_val:.4f}" if eps_val else "16.6139")
                 
                 earnings_growth = stock_data.get('earnings_growth', -24.0492) * 100 if stock_data.get('earnings_growth') else -24.0492
-                st.metric("Earnings growth (%)", f"{earnings_growth:.4f}")
+                st.metric("Earnings growth (%)", f"{earnings_growth:.4f}" if earnings_growth is not None else "N/A")
                 
             # Second row of metrics
             metric_col4, metric_col5, metric_col6 = st.columns(3)
             
             with metric_col4:
                 debt_equity = stock_data.get('debt_to_equity', 0)
-                st.metric("Debt/Equity", f"{debt_equity:.0f}")
+                st.metric("Debt/Equity", f"{debt_equity:.0f}" if debt_equity is not None else "N/A")
                 
             with metric_col5:
                 current_ratio = stock_data.get('current_ratio', 0.7918)
@@ -414,7 +415,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
                 st.metric("Net Sales Growth (%)", f"{net_sales_growth:.4f}" if net_sales_growth else "-6.3798")
                 
                 net_margin = stock_data.get('profit_margins', 9.7629) * 100 if stock_data.get('profit_margins') else 9.7629
-                st.metric("Net margin (%)", f"{net_margin:.4f}")
+                st.metric("Net margin (%)", f"{net_margin:.4f}" if net_margin is not None else "N/A")
 
     with tab2:
         # Company overview similar to your ICICI Bank reference
