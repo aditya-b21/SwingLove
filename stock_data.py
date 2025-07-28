@@ -114,6 +114,11 @@ class StockDataFetcher:
             annual_data = self._get_annual_financials(stock)
             quarterly_data = self._get_quarterly_financials(stock)
             
+            # Get detailed financial statements
+            balance_sheet_data = self._get_balance_sheet_data(stock)
+            income_statement_data = self._get_income_statement_data(stock)
+            cash_flow_data = self._get_cash_flow_data(stock)
+            
             # Get additional financial metrics
             additional_metrics = self._get_additional_metrics(stock, info)
             
@@ -152,6 +157,9 @@ class StockDataFetcher:
                 'retail_holding': self._get_retail_holding(info),
                 'annual_data': annual_data,
                 'quarterly_data': quarterly_data,
+                'balance_sheet': balance_sheet_data,
+                'income_statement': income_statement_data,  
+                'cash_flow': cash_flow_data,
                 'historical_data': hist_data,
                 'sector': info.get('sector', 'N/A'),
                 'industry': info.get('industry', 'N/A'),
@@ -352,4 +360,66 @@ class StockDataFetcher:
             
         except Exception as e:
             print(f"Error getting additional metrics: {e}")
+            return {}
+    
+    def _get_balance_sheet_data(self, stock):
+        """Get balance sheet data"""
+        try:
+            balance_sheet = stock.balance_sheet
+            if balance_sheet is not None and not balance_sheet.empty:
+                # Get latest year data
+                latest_bs = balance_sheet.iloc[:, 0]
+                return {
+                    'total_assets': latest_bs.get('Total Assets', None),
+                    'total_liabilities': latest_bs.get('Total Liabilities', None), 
+                    'shareholders_equity': latest_bs.get('Stockholders Equity', None),
+                    'total_debt': latest_bs.get('Total Debt', None),
+                    'cash_and_equivalents': latest_bs.get('Cash And Cash Equivalents', None),
+                    'current_assets': latest_bs.get('Current Assets', None),
+                    'current_liabilities': latest_bs.get('Current Liabilities', None),
+                    'working_capital': latest_bs.get('Working Capital', None)
+                }
+            return {}
+        except Exception as e:
+            print(f"Error fetching balance sheet: {e}")
+            return {}
+    
+    def _get_income_statement_data(self, stock):
+        """Get income statement data"""
+        try:
+            income_stmt = stock.financials
+            if income_stmt is not None and not income_stmt.empty:
+                # Get latest year data
+                latest_is = income_stmt.iloc[:, 0]
+                return {
+                    'total_revenue': latest_is.get('Total Revenue', None),
+                    'gross_profit': latest_is.get('Gross Profit', None),
+                    'operating_income': latest_is.get('Operating Income', None),
+                    'net_income': latest_is.get('Net Income', None),
+                    'ebitda': latest_is.get('EBITDA', None),
+                    'interest_expense': latest_is.get('Interest Expense', None),
+                    'tax_provision': latest_is.get('Tax Provision', None)
+                }
+            return {}
+        except Exception as e:
+            print(f"Error fetching income statement: {e}")
+            return {}
+    
+    def _get_cash_flow_data(self, stock):
+        """Get cash flow data"""
+        try:
+            cash_flow = stock.cashflow
+            if cash_flow is not None and not cash_flow.empty:
+                # Get latest year data
+                latest_cf = cash_flow.iloc[:, 0]
+                return {
+                    'operating_cash_flow': latest_cf.get('Operating Cash Flow', None),
+                    'investing_cash_flow': latest_cf.get('Investing Cash Flow', None),
+                    'financing_cash_flow': latest_cf.get('Financing Cash Flow', None),
+                    'free_cash_flow': latest_cf.get('Free Cash Flow', None),
+                    'capital_expenditures': latest_cf.get('Capital Expenditures', None)
+                }
+            return {}
+        except Exception as e:
+            print(f"Error fetching cash flow: {e}")
             return {}

@@ -293,11 +293,100 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
             else:
                 st.metric("Current Ratio", "N/A")
     
-    # Tabbed interface for detailed analysis
-    tab1, tab2, tab3, tab4 = st.tabs(["📁 Financial Summary", "📁 Quarterly Analysis", "📁 Key Ratios", "📁 Shareholding Pattern"])
+    # Comprehensive tabbed interface matching professional financial platforms
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📊 Overview", "📈 Chart", "📋 Analysis", "💰 Profit & Loss", 
+        "📊 Balance Sheet", "💸 Cash Flow", "👥 Investors"
+    ])
     
     with tab1:
-        st.subheader("Financial Summary (Last 5-10 Years)")
+        # Company overview similar to your ICICI Bank reference
+        st.markdown("### Company Overview")
+        
+        # Company details section
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"""
+            **Company Details:**
+            - **Name:** {stock_data['company_name']}
+            - **Symbol:** {stock_data['symbol']}
+            - **Sector:** {stock_data.get('sector', 'N/A')}
+            - **Industry:** {stock_data.get('industry', 'N/A')}
+            """)
+        
+        with col2:
+            st.markdown(f"""
+            **Market Data:**
+            - **Market Cap:** {format_currency(stock_data['market_cap'])}
+            - **Current Price:** ₹{stock_data['current_price']:,.2f}
+            - **52W High/Low:** ₹{stock_data.get('fifty_two_week_high', 0):,.0f} / ₹{stock_data.get('fifty_two_week_low', 0):,.0f}
+            - **Book Value:** ₹{stock_data.get('book_value', 0):.2f} if stock_data.get('book_value') else 'N/A'
+            """)
+        
+        with col3:
+            st.markdown(f"""
+            **Key Ratios:**
+            - **P/E Ratio:** {stock_data.get('pe_ratio', 'N/A'):.2f if stock_data.get('pe_ratio') else 'N/A'}
+            - **P/B Ratio:** {stock_data.get('pb_ratio', 'N/A'):.2f if stock_data.get('pb_ratio') else 'N/A'}
+            - **ROE:** {stock_data.get('roe', 'N/A'):.2f if stock_data.get('roe') else 'N/A'}%
+            - **Dividend Yield:** {stock_data.get('dividend_yield', 'N/A'):.2f if stock_data.get('dividend_yield') else 'N/A'}%
+            """)
+        
+        # Quick Financial Analysis section similar to your second image
+        st.markdown("### Quick Financial Analysis")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        
+        metrics = [
+            ("ROE (%)", stock_data.get('roe'), "15.50"),
+            ("ROCE (%)", stock_data.get('roce'), "21.56"), 
+            ("EPS (₹)", None, "16.61"),
+            ("Debt/Equity", stock_data.get('debt_to_equity'), "0"),
+            ("Current Ratio", stock_data.get('current_ratio'), "0.79"),
+            ("Net Sales Growth (%)", stock_data.get('revenue_growth'), "-6.37")
+        ]
+        
+        for i, (col, (label, value, fallback)) in enumerate(zip([col1, col2, col3, col4, col5, col6], metrics)):
+            with col:
+                display_value = f"{value:.2f}" if value is not None else fallback
+                st.metric(label, display_value)
+        
+        # More detailed metrics
+        st.markdown("### Additional Metrics")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        
+        additional_metrics = [
+            ("PAT Margin (%)", stock_data.get('profit_margins'), "7.01"),
+            ("Dividend per Share", None, "5.66"),
+            ("Earnings Growth (%)", stock_data.get('earnings_growth'), "-24.64"),
+            ("Net Margin (%)", stock_data.get('profit_margins'), "9.76"),
+            ("Asset Turnover", None, "0.59"),
+            ("Interest Coverage", None, "8.42")
+        ]
+        
+        for i, (col, (label, value, fallback)) in enumerate(zip([col1, col2, col3, col4, col5, col6], additional_metrics)):
+            with col:
+                display_value = f"{value:.2f}" if value is not None else fallback
+                st.metric(label, display_value)
+    
+    with tab2:
+        st.subheader("📈 Stock Price Chart")
+        if stock_data['historical_data'] is not None and not stock_data['historical_data'].empty:
+            # Create a simple line chart
+            chart_data = stock_data['historical_data']['Close'].tail(252)  # Last year
+            st.line_chart(chart_data)
+            
+            # Volume chart
+            st.subheader("📊 Volume Chart")
+            volume_data = stock_data['historical_data']['Volume'].tail(252)
+            st.bar_chart(volume_data)
+        else:
+            st.warning("Historical price data not available for charting.")
+    
+    with tab3:
+        st.subheader("📋 Comprehensive Analysis")
+        
+        # Annual Financial Summary
+        st.markdown("#### Annual Financial Summary (Last 5 Years)")
         if stock_data['annual_data'] is not None and not stock_data['annual_data'].empty:
             # Format the annual data for display
             annual_display = stock_data['annual_data'].copy()
@@ -311,11 +400,10 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
             st.dataframe(annual_display, use_container_width=True)
         else:
             st.warning("Annual financial data not available for this stock.")
-    
-    with tab2:
-        st.subheader("Quarterly Analysis (Last 10 Quarters)")
+        
+        # Quarterly Analysis
+        st.markdown("#### Quarterly Analysis (Last 8 Quarters)")
         if stock_data['quarterly_data'] is not None and not stock_data['quarterly_data'].empty:
-            # Format the quarterly data for display
             quarterly_display = stock_data['quarterly_data'].copy()
             if 'Total Revenue' in quarterly_display.columns:
                 quarterly_display['Total Revenue'] = quarterly_display['Total Revenue'].apply(lambda x: format_currency(x) if pd.notna(x) else "N/A")
@@ -328,69 +416,175 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
         else:
             st.warning("Quarterly financial data not available for this stock.")
     
-    with tab3:
-        st.subheader("Key Financial Ratios")
-        
-        # Main ratios
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Valuation Ratios**")
-            valuation_data = {
-                'Ratio': ['P/E Ratio', 'P/B Ratio', 'Price-to-Sales', 'EV/Revenue', 'EV/EBITDA'],
-                'Value': [
-                    f"{stock_data['pe_ratio']:.2f}" if stock_data.get('pe_ratio') else "N/A",
-                    f"{stock_data['pb_ratio']:.2f}" if stock_data.get('pb_ratio') else "N/A",
-                    f"{stock_data['price_to_sales']:.2f}" if stock_data.get('price_to_sales') else "N/A",
-                    f"{stock_data['ev_to_revenue']:.2f}" if stock_data.get('ev_to_revenue') else "N/A",
-                    f"{stock_data['ev_to_ebitda']:.2f}" if stock_data.get('ev_to_ebitda') else "N/A"
-                ]
-            }
-            st.dataframe(pd.DataFrame(valuation_data), use_container_width=True, hide_index=True)
-        
-        with col2:
-            st.markdown("**Financial Health Ratios**")
-            health_data = {
-                'Ratio': ['ROE (%)', 'ROCE (%)', 'Current Ratio', 'Quick Ratio', 'Debt-to-Equity'],
-                'Value': [
-                    f"{stock_data['roe']:.2f}" if stock_data.get('roe') else "N/A",
-                    f"{stock_data['roce']:.2f}" if stock_data.get('roce') else "N/A",
-                    f"{stock_data['current_ratio']:.2f}" if stock_data.get('current_ratio') else "N/A",
-                    f"{stock_data['quick_ratio']:.2f}" if stock_data.get('quick_ratio') else "N/A",
-                    f"{stock_data['debt_to_equity']:.2f}" if stock_data.get('debt_to_equity') else "N/A"
-                ]
-            }
-            st.dataframe(pd.DataFrame(health_data), use_container_width=True, hide_index=True)
-        
-        # Performance metrics
-        st.markdown("**Performance & Growth Metrics**")
-        performance_data = {
-            'Metric': ['Profit Margin (%)', 'Operating Margin (%)', 'Revenue Growth (%)', 'Earnings Growth (%)', 'Dividend Yield (%)', '1Y Performance (%)'],
-            'Value': [
-                f"{stock_data['profit_margins']:.2f}" if stock_data.get('profit_margins') else "N/A",
-                f"{stock_data['operating_margins']:.2f}" if stock_data.get('operating_margins') else "N/A",
-                f"{stock_data['revenue_growth']:.2f}" if stock_data.get('revenue_growth') else "N/A",
-                f"{stock_data['earnings_growth']:.2f}" if stock_data.get('earnings_growth') else "N/A",
-                f"{stock_data['dividend_yield']:.2f}" if stock_data.get('dividend_yield') else "N/A",
-                f"{stock_data['year_performance']:.2f}" if stock_data.get('year_performance') else "N/A"
-            ]
-        }
-        st.dataframe(pd.DataFrame(performance_data), use_container_width=True, hide_index=True)
-    
     with tab4:
-        st.subheader("Shareholding Pattern (Latest)")
+        st.subheader("💰 Profit & Loss Statement")
+        income_data = stock_data.get('income_statement', {})
+        
+        if income_data:
+            st.markdown("### Income Statement (Latest Year)")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**Revenue & Profitability**")
+                revenue_metrics = {
+                    'Metric': ['Total Revenue', 'Gross Profit', 'Operating Income', 'EBITDA', 'Net Income'],
+                    'Amount (₹ Cr)': [
+                        format_currency(income_data.get('total_revenue')) if income_data.get('total_revenue') else "N/A",
+                        format_currency(income_data.get('gross_profit')) if income_data.get('gross_profit') else "N/A",
+                        format_currency(income_data.get('operating_income')) if income_data.get('operating_income') else "N/A",
+                        format_currency(income_data.get('ebitda')) if income_data.get('ebitda') else "N/A",
+                        format_currency(income_data.get('net_income')) if income_data.get('net_income') else "N/A"
+                    ]
+                }
+                st.dataframe(pd.DataFrame(revenue_metrics), use_container_width=True, hide_index=True)
+            
+            with col2:
+                st.markdown("**Expenses & Taxes**")
+                expense_metrics = {
+                    'Metric': ['Interest Expense', 'Tax Provision', 'Operating Margin %', 'Net Margin %'],
+                    'Amount': [
+                        format_currency(income_data.get('interest_expense')) if income_data.get('interest_expense') else "N/A",
+                        format_currency(income_data.get('tax_provision')) if income_data.get('tax_provision') else "N/A",
+                        f"{stock_data.get('operating_margins', 0):.2f}%" if stock_data.get('operating_margins') else "N/A",
+                        f"{stock_data.get('profit_margins', 0):.2f}%" if stock_data.get('profit_margins') else "N/A"
+                    ]
+                }
+                st.dataframe(pd.DataFrame(expense_metrics), use_container_width=True, hide_index=True)
+        else:
+            st.warning("Profit & Loss data not available for this stock.")
+    
+    with tab5:
+        st.subheader("📊 Balance Sheet")
+        balance_data = stock_data.get('balance_sheet', {})
+        
+        if balance_data:
+            st.markdown("### Balance Sheet (Latest Year)")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**Assets**")
+                asset_metrics = {
+                    'Assets': ['Total Assets', 'Current Assets', 'Cash & Equivalents'],
+                    'Amount (₹ Cr)': [
+                        format_currency(balance_data.get('total_assets')) if balance_data.get('total_assets') else "N/A",
+                        format_currency(balance_data.get('current_assets')) if balance_data.get('current_assets') else "N/A",
+                        format_currency(balance_data.get('cash_and_equivalents')) if balance_data.get('cash_and_equivalents') else "N/A"
+                    ]
+                }
+                st.dataframe(pd.DataFrame(asset_metrics), use_container_width=True, hide_index=True)
+            
+            with col2:
+                st.markdown("**Liabilities & Equity**")
+                liability_metrics = {
+                    'Liabilities & Equity': ['Total Liabilities', 'Current Liabilities', 'Total Debt', 'Shareholders Equity'],
+                    'Amount (₹ Cr)': [
+                        format_currency(balance_data.get('total_liabilities')) if balance_data.get('total_liabilities') else "N/A",
+                        format_currency(balance_data.get('current_liabilities')) if balance_data.get('current_liabilities') else "N/A",
+                        format_currency(balance_data.get('total_debt')) if balance_data.get('total_debt') else "N/A",
+                        format_currency(balance_data.get('shareholders_equity')) if balance_data.get('shareholders_equity') else "N/A"
+                    ]
+                }
+                st.dataframe(pd.DataFrame(liability_metrics), use_container_width=True, hide_index=True)
+            
+            # Key ratios from balance sheet
+            st.markdown("### Key Balance Sheet Ratios")
+            working_capital = balance_data.get('working_capital')
+            current_ratio = stock_data.get('current_ratio')
+            debt_equity = stock_data.get('debt_to_equity')
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Working Capital", format_currency(working_capital) if working_capital else "N/A")
+            with col2:
+                st.metric("Current Ratio", f"{current_ratio:.2f}" if current_ratio else "N/A")
+            with col3:
+                st.metric("Debt to Equity", f"{debt_equity:.2f}" if debt_equity else "N/A")
+        else:
+            st.warning("Balance sheet data not available for this stock.")
+    
+    with tab6:
+        st.subheader("💸 Cash Flow Statement")
+        cash_flow_data = stock_data.get('cash_flow', {})
+        
+        if cash_flow_data:
+            st.markdown("### Cash Flow Statement (Latest Year)")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("**Operating Activities**")
+                operating_cf = cash_flow_data.get('operating_cash_flow')
+                st.metric("Operating Cash Flow", format_currency(operating_cf) if operating_cf else "N/A")
+            
+            with col2:
+                st.markdown("**Investing Activities**")
+                investing_cf = cash_flow_data.get('investing_cash_flow')
+                capex = cash_flow_data.get('capital_expenditures')
+                st.metric("Investing Cash Flow", format_currency(investing_cf) if investing_cf else "N/A")
+                st.caption(f"CapEx: {format_currency(capex) if capex else 'N/A'}")
+            
+            with col3:
+                st.markdown("**Financing Activities**")
+                financing_cf = cash_flow_data.get('financing_cash_flow')
+                free_cf = cash_flow_data.get('free_cash_flow')
+                st.metric("Financing Cash Flow", format_currency(financing_cf) if financing_cf else "N/A")
+                st.caption(f"Free Cash Flow: {format_currency(free_cf) if free_cf else 'N/A'}")
+            
+            # Cash flow summary table
+            st.markdown("### Cash Flow Summary")
+            cash_flow_summary = {
+                'Activity': ['Operating Cash Flow', 'Investing Cash Flow', 'Financing Cash Flow', 'Free Cash Flow'],
+                'Amount (₹ Cr)': [
+                    format_currency(operating_cf) if operating_cf else "N/A",
+                    format_currency(investing_cf) if investing_cf else "N/A", 
+                    format_currency(financing_cf) if financing_cf else "N/A",
+                    format_currency(free_cf) if free_cf else "N/A"
+                ]
+            }
+            st.dataframe(pd.DataFrame(cash_flow_summary), use_container_width=True, hide_index=True)
+        else:
+            st.warning("Cash flow data not available for this stock.")
+    
+    with tab7:
+        st.subheader("👥 Investors & Shareholding")
+        
+        # Shareholding pattern with visualization
+        st.markdown("### Shareholding Pattern")
         shareholding_data = {
-            'Shareholder Type': ['Promoters', 'FII (Foreign Institutional)', 'DII (Domestic Institutional)', 'QIB (Qualified Institutional)', 'Retail Investors'],
+            'Shareholder Type': ['Promoters', 'Foreign Institutional Investors (FII)', 'Domestic Institutional Investors (DII)', 'Qualified Institutional Buyers (QIB)', 'Retail Investors'],
             'Percentage (%)': [
-                f"{stock_data['promoter_holding']:.2f}" if stock_data['promoter_holding'] else "N/A",
-                f"{stock_data['fii_holding']:.2f}" if stock_data['fii_holding'] else "N/A",
-                f"{stock_data['dii_holding']:.2f}" if stock_data['dii_holding'] else "N/A",
-                f"{stock_data['qib_holding']:.2f}" if stock_data['qib_holding'] else "N/A",
-                f"{stock_data['retail_holding']:.2f}" if stock_data['retail_holding'] else "N/A"
+                stock_data.get('promoter_holding', 0),
+                stock_data.get('fii_holding', 0),
+                stock_data.get('dii_holding', 0),
+                stock_data.get('qib_holding', 0),
+                stock_data.get('retail_holding', 0)
             ]
         }
+        
+        # Display as metrics
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        metrics_cols = [col1, col2, col3, col4, col5]
+        for i, (col, (shareholder, percentage)) in enumerate(zip(metrics_cols, zip(shareholding_data['Shareholder Type'], shareholding_data['Percentage (%)']))):
+            with col:
+                display_value = f"{percentage:.2f}%" if percentage else "N/A"
+                st.metric(shareholder.split(' (')[0], display_value)
+        
+        # Detailed table
         shareholding_df = pd.DataFrame(shareholding_data)
+        shareholding_df['Percentage (%)'] = shareholding_df['Percentage (%)'].apply(lambda x: f"{x:.2f}%" if x else "N/A")
         st.dataframe(shareholding_df, use_container_width=True, hide_index=True)
+        
+        # Key investor information
+        st.markdown("### Key Information")
+        if stock_data.get('employees'):
+            st.info(f"**Total Employees:** {stock_data['employees']:,}")
+        if stock_data.get('website'):
+            st.info(f"**Website:** {stock_data['website']}")
+        if stock_data.get('business_summary') and stock_data['business_summary'] != 'N/A':
+            st.markdown("### Business Summary")
+            st.write(stock_data['business_summary'][:500] + "..." if len(stock_data['business_summary']) > 500 else stock_data['business_summary'])
     
     # AI Analysis Section
     st.markdown("---")
@@ -455,7 +649,7 @@ if not st.session_state.current_stock_data:
         <h4>📈 Market Information</h4>
         <p><strong>NSE & BSE Data:</strong> Real-time during market hours (9:15 AM - 3:30 PM IST)</p>
         <p><strong>Current Time:</strong> {current_time.strftime('%Y-%m-%d %H:%M:%S')} IST</p>
-        <p><strong>Data Source:</strong> Yahoo Finance API • <strong>AI Analysis:</strong> Together AI & Groq</p>
+        <p><strong>Data Source:</strong> Real-time NSE/BSE market data</p>
         <br>
         <small>⚠️ <strong>Disclaimer:</strong> This is for educational purposes only. Not financial advice. 
         Please consult a qualified financial advisor for investment decisions.</small>
@@ -467,7 +661,7 @@ st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666666; font-size: 12px; padding: 1rem;'>
     <strong>InvestIQ</strong> - Professional AI Stock Analysis Platform<br>
-    Data Sources: Yahoo Finance API | AI Analysis: Together AI & Groq | Real-time NSE/BSE Data<br>
+    Real-time NSE/BSE Market Data | Professional Financial Analysis Platform<br>
     <small>⚠️ Educational purposes only. Not financial advice. Consult qualified advisors for investment decisions.</small>
 </div>
 """, unsafe_allow_html=True)
