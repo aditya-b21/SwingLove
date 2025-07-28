@@ -3,5 +3,5 @@ requests==2.31.0
 streamlit==1.47.1
 yfinance==0.2.65
 google-generativeai==0.8.5
-python-3.10.13
+
 
