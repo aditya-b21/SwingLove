@@ -294,8 +294,8 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
                 st.metric("Current Ratio", "N/A")
     
     # Comprehensive tabbed interface matching professional financial platforms
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "📊 Overview", "📈 Chart", "📋 Analysis", "💰 Profit & Loss", 
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 Overview", "📋 Analysis", "💰 Profit & Loss", 
         "📊 Balance Sheet", "💸 Cash Flow", "👥 Investors"
     ])
     
@@ -324,12 +324,17 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
             """)
         
         with col3:
+            pe_ratio = stock_data.get('pe_ratio')
+            pb_ratio = stock_data.get('pb_ratio')
+            roe = stock_data.get('roe')
+            dividend_yield = stock_data.get('dividend_yield')
+            
             st.markdown(f"""
             **Key Ratios:**
-            - **P/E Ratio:** {stock_data.get('pe_ratio', 'N/A'):.2f if stock_data.get('pe_ratio') else 'N/A'}
-            - **P/B Ratio:** {stock_data.get('pb_ratio', 'N/A'):.2f if stock_data.get('pb_ratio') else 'N/A'}
-            - **ROE:** {stock_data.get('roe', 'N/A'):.2f if stock_data.get('roe') else 'N/A'}%
-            - **Dividend Yield:** {stock_data.get('dividend_yield', 'N/A'):.2f if stock_data.get('dividend_yield') else 'N/A'}%
+            - **P/E Ratio:** {pe_ratio:.2f if pe_ratio else 'N/A'}
+            - **P/B Ratio:** {pb_ratio:.2f if pb_ratio else 'N/A'}
+            - **ROE:** {roe:.2f if roe else 'N/A'}%
+            - **Dividend Yield:** {dividend_yield:.2f if dividend_yield else 'N/A'}%
             """)
         
         # Quick Financial Analysis section similar to your second image
@@ -369,20 +374,6 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
                 st.metric(label, display_value)
     
     with tab2:
-        st.subheader("📈 Stock Price Chart")
-        if stock_data['historical_data'] is not None and not stock_data['historical_data'].empty:
-            # Create a simple line chart
-            chart_data = stock_data['historical_data']['Close'].tail(252)  # Last year
-            st.line_chart(chart_data)
-            
-            # Volume chart
-            st.subheader("📊 Volume Chart")
-            volume_data = stock_data['historical_data']['Volume'].tail(252)
-            st.bar_chart(volume_data)
-        else:
-            st.warning("Historical price data not available for charting.")
-    
-    with tab3:
         st.subheader("📋 Comprehensive Analysis")
         
         # Annual Financial Summary
@@ -416,7 +407,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
         else:
             st.warning("Quarterly financial data not available for this stock.")
     
-    with tab4:
+    with tab3:
         st.subheader("💰 Profit & Loss Statement")
         income_data = stock_data.get('income_statement', {})
         
@@ -453,7 +444,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
         else:
             st.warning("Profit & Loss data not available for this stock.")
     
-    with tab5:
+    with tab4:
         st.subheader("📊 Balance Sheet")
         balance_data = stock_data.get('balance_sheet', {})
         
@@ -503,7 +494,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
         else:
             st.warning("Balance sheet data not available for this stock.")
     
-    with tab6:
+    with tab5:
         st.subheader("💸 Cash Flow Statement")
         cash_flow_data = stock_data.get('cash_flow', {})
         
@@ -546,7 +537,7 @@ if st.session_state.current_stock_data and st.session_state.current_analysis:
         else:
             st.warning("Cash flow data not available for this stock.")
     
-    with tab7:
+    with tab6:
         st.subheader("👥 Investors & Shareholding")
         
         # Shareholding pattern with visualization
